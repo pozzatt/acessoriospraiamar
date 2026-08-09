@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Acessórios Praiamar</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Praiamar">
+<meta name="theme-color" content="#0f5c4a">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#faf9f7; --line:#e2e0db; --accent:#0f5c4a;
+    --accent-soft:#e6efec; --muted:#8a8680; --danger:#b5493a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif; background:var(--paper); color:var(--ink); overscroll-behavior-y:contain;}
+  #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom);}
+  header{padding:20px 20px 14px; position:sticky; top:0; background:var(--paper); z-index:20; border-bottom:1px solid var(--line);}
+  .brand-row{display:flex; align-items:center; justify-content:space-between;}
+  .brand{font-size:22px; font-weight:700; letter-spacing:-0.02em;}
+  .brand small{display:block; font-size:10px; font-weight:500; letter-spacing:0.14em; color:var(--muted); margin-top:2px; text-transform:uppercase;}
+  .admin-btn{border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:600; color:var(--muted);}
+  .admin-btn.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .mode-toggle{display:flex; gap:6px; margin-top:14px;}
+  .mode-btn{flex:1; border:1px solid var(--line); background:#fff; color:var(--ink); padding:9px 8px; border-radius:9px; font-size:13px; font-weight:600; text-align:center;}
+  .mode-btn.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .code-panel{padding:16px 20px 4px;}
+  .code-input-wrap{display:flex; gap:8px;}
+  input, textarea, select{flex:1; border:1px solid var(--line); border-radius:9px; padding:13px 14px; font-size:16px; background:#fff; color:var(--ink); width:100%;}
+  input:focus, textarea:focus, select:focus{outline:2px solid var(--accent); outline-offset:-1px;}
+  .code-result{margin-top:14px;}
+  .subheader{display:flex; align-items:center; gap:10px; padding:14px 20px 4px;}
+  .back-btn{border:none; background:none; color:var(--accent); font-size:15px; font-weight:600; padding:4px 0;}
+  .crumb-title{font-size:15px; font-weight:600; color:var(--muted);}
+  .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px 20px 24px;}
+  .cat-card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 14px; text-align:left; min-height:88px; display:flex; flex-direction:column; justify-content:space-between;}
+  .cat-card .cat-icon{font-size:20px; margin-bottom:8px;}
+  .cat-card .cat-name{font-size:14px; font-weight:700;}
+  .cat-card .cat-count{font-size:11px; color:var(--muted); margin-top:2px;}
+  .cat-card:active{background:var(--accent-soft);}
+  .product-list{padding:6px 20px 24px; display:flex; flex-direction:column; gap:8px;}
+  .product-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:13px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .product-info{min-width:0; flex:1;}
+  .product-name{font-size:14px; font-weight:600; line-height:1.32;}
+  .product-code{font-size:11px; color:var(--muted); margin-top:3px;}
+  .product-price{font-size:15px; font-weight:700; color:var(--accent); white-space:nowrap; flex-shrink:0;}
+  .product-actions{display:flex; gap:6px; margin-top:8px;}
+  .mini-btn{border:1px solid var(--line); background:#fff; border-radius:7px; padding:5px 10px; font-size:11px; font-weight:600;}
+  .mini-btn.edit{color:var(--accent); border-color:var(--accent);}
+  .mini-btn.del{color:var(--danger); border-color:var(--danger);}
+  .result-card{background:#fff; border:1px solid var(--accent); border-radius:14px; padding:18px;}
+  .result-card .product-name{font-size:17px; margin-bottom:6px;}
+  .result-card .product-code{font-size:12px; margin-bottom:14px;}
+  .result-card .product-price{font-size:26px;}
+  .not-found{text-align:center; color:var(--muted); font-size:14px; padding:30px 10px;}
+  .not-found strong{display:block; color:var(--danger); font-size:15px; margin-bottom:4px;}
+  .hidden{display:none !important;}
+  footer{margin-top:auto; text-align:center; padding:22px 20px 14px; font-size:10px; letter-spacing:0.1em; color:var(--muted); text-transform:uppercase;}
+  .admin-panel{padding:16px 20px;}
+  .admin-panel label{font-size:12px; font-weight:600; color:var(--muted); display:block; margin:12px 0 6px;}
+  .admin-panel label:first-child{margin-top:0;}
+  .primary-btn{width:100%; background:var(--accent); color:#fff; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:700; margin-top:16px;}
+  .secondary-btn{width:100%; background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:10px; padding:11px; font-size:13px; font-weight:600; margin-top:8px;}
+  .msg{font-size:13px; padding:10px 12px; border-radius:8px; margin-top:12px;}
+  .msg.error{background:#fbeceb; color:var(--danger);}
+  .msg.success{background:var(--accent-soft); color:var(--accent);}
+  .add-product-btn{background:var(--accent); color:#fff; border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:700; margin:0 20px 16px;}
+  .loading{text-align:center; padding:40px; color:var(--muted); font-size:14px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand-row">
+      <div class="brand">Acessórios Praiamar<small>Pozzatt</small></div>
+      <button class="admin-btn" id="adminBtn">Admin</button>
+    </div>
+    <div class="mode-toggle" id="modeToggle">
+      <button class="mode-btn active" id="btnModeBrowse">Categorias</button>
+      <button class="mode-btn" id="btnModeCode">Digitar código</button>
+    </div>
+  </header>
+
+  <div class="code-panel hidden" id="codePanel">
+    <div class="code-input-wrap"><input id="codeInput" type="text" placeholder="Ex: 62317" autocomplete="off" autocapitalize="characters"></div>
+    <div class="code-result" id="codeResult"></div>
+  </div>
+
+  <div id="browsePanel">
+    <div class="subheader hidden" id="subheader">
+      <button class="back-btn" id="backBtn">‹ Categorias</button>
+      <span class="crumb-title" id="crumbTitle"></span>
+    </div>
+    <div class="cat-grid" id="catGrid"></div>
+    <button class="add-product-btn hidden" id="addProductBtn">+ Adicionar produto</button>
+    <div class="product-list hidden" id="productList"></div>
+  </div>
+
+  <div class="admin-panel hidden" id="loginPanel">
+    <label>E-mail</label>
+    <input id="loginEmail" type="email" autocomplete="off" autocapitalize="none">
+    <label>Senha</label>
+    <input id="loginPassword" type="password">
+    <button class="primary-btn" id="loginSubmit">Entrar</button>
+    <div id="loginMsg"></div>
+  </div>
+
+  <div class="admin-panel hidden" id="formPanel">
+    <label>Código</label>
+    <input id="formCode" type="text">
+    <label>Nome do produto</label>
+    <input id="formName" type="text">
+    <label>Preço (R$)</label>
+    <input id="formPrice" type="number" step="0.01">
+    <label>Categoria</label>
+    <select id="formCategory"></select>
+    <button class="primary-btn" id="formSave">Salvar</button>
+    <button class="secondary-btn" id="formCancel">Cancelar</button>
+    <div id="formMsg"></div>
+  </div>
+
+  <footer>Acessórios Praiamar · Pozzatt</footer>
+</div>
+
+<script>
+const SUPABASE_URL = "https://bhydmevcvyqxtszxpkis.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoeWRtZXZjdnlxeHRzenhwa2lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMjc4NTgsImV4cCI6MjEwMTgwMzg1OH0.Hh1sePNnjiJddjYqcvQL_sBCFd2tLrfLLs7uC0Xna50";
+let sb = null;
+try{
+  if(typeof supabase === 'undefined') throw new Error('A biblioteca do Supabase não carregou (verifique sua conexão com a internet).');
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}catch(err){
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('catGrid').innerHTML = `<div class="loading" style="grid-column:1/-1;color:#b5493a;">Não foi possível carregar o app: ${err.message}<br><br>Tente atualizar a página (puxe pra baixo) ou verifique sua internet.</div>`;
+  });
+}
+
+const CATEGORIES = [
+  {id:"cabos", name:"Cabos", icon:"⚡︎"},
+  {id:"carregadores", name:"Carregadores", icon:"🔌"},
+  {id:"fones-fio", name:"Fones com Fio", icon:"🎧"},
+  {id:"fones-sem-fio", name:"Fones Sem Fio", icon:"🎵"},
+  {id:"caixas-som", name:"Caixas de Som", icon:"🔊"},
+  {id:"casa", name:"Casa Inteligente", icon:"💡"},
+  {id:"relogios", name:"Relógios", icon:"⌚"},
+  {id:"baterias", name:"Baterias Externas", icon:"🔋"},
+  {id:"suportes", name:"Suportes e Bolsas", icon:"📎"},
+  {id:"robos", name:"Robôs Aspiradores", icon:"🤖"},
+  {id:"perifericos", name:"Periféricos", icon:"⌨️"},
+];
+
+let DATA = [];
+let isAdmin = false;
+let editingId = null;
+
+function fmtPrice(v){ return "R$ " + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+const catGrid = document.getElementById('catGrid');
+const productList = document.getElementById('productList');
+const subheader = document.getElementById('subheader');
+const crumbTitle = document.getElementById('crumbTitle');
+const backBtn = document.getElementById('backBtn');
+const codePanel = document.getElementById('codePanel');
+const browsePanel = document.getElementById('browsePanel');
+const modeToggle = document.getElementById('modeToggle');
+const btnModeBrowse = document.getElementById('btnModeBrowse');
+const btnModeCode = document.getElementById('btnModeCode');
+const codeInput = document.getElementById('codeInput');
+const codeResult = document.getElementById('codeResult');
+const adminBtn = document.getElementById('adminBtn');
+const loginPanel = document.getElementById('loginPanel');
+const formPanel = document.getElementById('formPanel');
+const addProductBtn = document.getElementById('addProductBtn');
+let currentCat = null;
+
+async function loadData(){
+  productList.innerHTML = '<div class="loading">Carregando...</div>';
+  const { data, error } = await sb.from('products').select('*').order('name');
+  if(error){ productList.innerHTML = '<div class="loading">Erro ao carregar. Verifique sua conexão.</div>'; return; }
+  DATA = data;
+  renderCategories();
+  if(currentCat) showCategory(currentCat);
+}
+
+function renderCategories(){
+  catGrid.innerHTML = CATEGORIES.map(c => {
+    const count = DATA.filter(p => p.category === c.id).length;
+    return `<button class="cat-card" data-cat="${c.id}"><div class="cat-icon">${c.icon}</div><div><div class="cat-name">${c.name}</div><div class="cat-count">${count} ${count===1?'item':'itens'}</div></div></button>`;
+  }).join('');
+  catGrid.querySelectorAll('.cat-card').forEach(btn => btn.addEventListener('click', () => showCategory(btn.dataset.cat)));
+}
+
+function showCategory(catId){
+  currentCat = catId;
+  const cat = CATEGORIES.find(c => c.id === catId);
+  const items = DATA.filter(p => p.category === catId);
+  catGrid.classList.add('hidden');
+  productList.classList.remove('hidden');
+  subheader.classList.remove('hidden');
+  addProductBtn.classList.toggle('hidden', !isAdmin);
+  crumbTitle.textContent = cat.name;
+  productList.innerHTML = items.map(p => `
+    <div class="product-card">
+      <div class="product-info">
+        <div class="product-name">${p.name}</div>
+        <div class="product-code">Código ${p.code}</div>
+        ${isAdmin ? `<div class="product-actions">
+          <button class="mini-btn edit" data-edit="${p.id}">Editar</button>
+          <button class="mini-btn del" data-del="${p.id}">Excluir</button>
+        </div>` : ''}
+      </div>
+      <div class="product-price">${fmtPrice(p.price)}</div>
+    </div>`).join('');
+  productList.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openForm(b.dataset.edit)));
+  productList.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => deleteProduct(b.dataset.del)));
+}
+
+function showCategories(){
+  currentCat = null;
+  catGrid.classList.remove('hidden');
+  productList.classList.add('hidden');
+  subheader.classList.add('hidden');
+  addProductBtn.classList.add('hidden');
+}
+backBtn.addEventListener('click', showCategories);
+
+btnModeBrowse.addEventListener('click', () => {
+  btnModeBrowse.classList.add('active'); btnModeCode.classList.remove('active');
+  codePanel.classList.add('hidden'); browsePanel.classList.remove('hidden');
+});
+btnModeCode.addEventListener('click', () => {
+  btnModeCode.classList.add('active'); btnModeBrowse.classList.remove('active');
+  browsePanel.classList.add('hidden'); codePanel.classList.remove('hidden');
+  setTimeout(() => codeInput.focus(), 50);
+});
+
+function searchByCode(raw){
+  const q = raw.trim().toUpperCase();
+  if(!q){ codeResult.innerHTML = ''; return; }
+  const matches = DATA.filter(p => p.code.toUpperCase() === q || p.code.toUpperCase().split('/').includes(q));
+  if(matches.length === 0){ codeResult.innerHTML = `<div class="not-found"><strong>Código não encontrado</strong>Confira o número e tente novamente.</div>`; return; }
+  codeResult.innerHTML = matches.map(p => `<div class="result-card"><div class="product-name">${p.name}</div><div class="product-code">Código ${p.code}</div><div class="product-price">${fmtPrice(p.price)}</div></div>`).join('<div style="height:10px"></div>');
+}
+codeInput.addEventListener('input', e => searchByCode(e.target.value));
+
+// ---- ADMIN ----
+adminBtn.addEventListener('click', async () => {
+  if(isAdmin){
+    await sb.auth.signOut();
+    isAdmin = false;
+    adminBtn.textContent = 'Admin';
+    adminBtn.classList.remove('on');
+    loginPanel.classList.add('hidden');
+    formPanel.classList.add('hidden');
+    modeToggle.classList.remove('hidden');
+    browsePanel.classList.remove('hidden');
+    if(currentCat) showCategory(currentCat); else showCategories();
+  } else {
+    modeToggle.classList.add('hidden');
+    browsePanel.classList.add('hidden');
+    codePanel.classList.add('hidden');
+    loginPanel.classList.remove('hidden');
+  }
+});
+
+document.getElementById('loginSubmit').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const msg = document.getElementById('loginMsg');
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ msg.innerHTML = `<div class="msg error">E-mail ou senha incorretos.</div>`; return; }
+  isAdmin = true;
+  adminBtn.textContent = 'Sair';
+  adminBtn.classList.add('on');
+  loginPanel.classList.add('hidden');
+  modeToggle.classList.remove('hidden');
+  browsePanel.classList.remove('hidden');
+  msg.innerHTML = '';
+  if(currentCat) showCategory(currentCat); else showCategories();
+});
+
+function fillCategorySelect(){
+  const sel = document.getElementById('formCategory');
+  sel.innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+fillCategorySelect();
+
+function openForm(id){
+  editingId = id || null;
+  const p = id ? DATA.find(x => String(x.id) === String(id)) : null;
+  document.getElementById('formCode').value = p ? p.code : '';
+  document.getElementById('formName').value = p ? p.name : '';
+  document.getElementById('formPrice').value = p ? p.price : '';
+  document.getElementById('formCategory').value = p ? p.category : (currentCat || CATEGORIES[0].id);
+  document.getElementById('formMsg').innerHTML = '';
+  browsePanel.classList.add('hidden');
+  formPanel.classList.remove('hidden');
+}
+addProductBtn.addEventListener('click', () => openForm(null));
+document.getElementById('formCancel').addEventListener('click', () => {
+  formPanel.classList.add('hidden');
+  browsePanel.classList.remove('hidden');
+});
+
+document.getElementById('formSave').addEventListener('click', async () => {
+  const code = document.getElementById('formCode').value.trim();
+  const name = document.getElementById('formName').value.trim();
+  const price = parseFloat(document.getElementById('formPrice').value);
+  const category = document.getElementById('formCategory').value;
+  const msg = document.getElementById('formMsg');
+  if(!code || !name || isNaN(price)){ msg.innerHTML = `<div class="msg error">Preencha todos os campos.</div>`; return; }
+  let error;
+  if(editingId){
+    ({ error } = await sb.from('products').update({ code, name, price, category }).eq('id', editingId));
+  } else {
+    ({ error } = await sb.from('products').insert({ code, name, price, category }));
+  }
+  if(error){ msg.innerHTML = `<div class="msg error">Erro ao salvar: ${error.message}</div>`; return; }
+  msg.innerHTML = `<div class="msg success">Salvo!</div>`;
+  await loadData();
+  setTimeout(() => { formPanel.classList.add('hidden'); browsePanel.classList.remove('hidden'); }, 500);
+});
+
+async function deleteProduct(id){
+  if(!confirm('Excluir este produto?')) return;
+  await sb.from('products').delete().eq('id', id);
+  await loadData();
+}
+
+// check existing session on load
+if(sb){
+  sb.auth.getSession().then(({ data }) => {
+    if(data.session){
+      isAdmin = true;
+      adminBtn.textContent = 'Sair';
+      adminBtn.classList.add('on');
+    }
+    loadData();
+  }).catch(err => {
+    catGrid.innerHTML = `<div class="loading" style="grid-column:1/-1;color:#b5493a;">Erro ao conectar: ${err.message}</div>`;
+  });
+}
+</script>
+</body>
+</html>
